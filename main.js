@@ -47,6 +47,17 @@ var jugador = {
   apuesta: 100
 };
 
+function cargarFichasDesdeLocalStorage() {
+  const fichasGuardadas = localStorage.getItem('fichas');
+  if (fichasGuardadas !== null) {
+    jugador.fichas = parseInt(fichasGuardadas);
+  } else {
+    jugador.fichas = 10000; 
+  }
+  document.getElementById('fichas').textContent = jugador.fichas;
+}
+
+cargarFichasDesdeLocalStorage();
 
 function generarNumeroAleatorio() {
   return Math.floor(Math.random() * 37);
@@ -55,36 +66,79 @@ function generarNumeroAleatorio() {
 
 function girarRuleta() {
   if (jugador.fichas >= jugador.apuesta) {
-    var numeroSeleccionado = parseInt(prompt('Ingresa el número al que quieres apostar (0-36):'));
-    var colorSeleccionado = prompt('Ingresa el color al que quieres apostar (rojo/negro):');
-    var numeroGanador = generarNumeroAleatorio()
-    const ganador = numeros.find((el) => el.numero === numeroGanador)
-    console.log (ganador)
-    resultado.innerHTML = 'Número: ' + ganador.numero + ' - Color: ' + ganador.color;
+    Swal.fire({
+      title: 'Ingresa el número al que quieres apostar (0-36):',
+      input: 'number',
+      inputAttributes: {
+        min: 0,
+        max: 36
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Apostar',
+      cancelButtonText: 'Cancelar',
+      showLoaderOnConfirm: true,
+      preConfirm: (numeroSeleccionado) => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            if (isNaN(numeroSeleccionado) || numeroSeleccionado < 0 || numeroSeleccionado > 36) {
+              Swal.showValidationMessage('El número ingresado no es válido');
+              resolve();
+            } else {
+              resolve(numeroSeleccionado);
+            }
+          }, 100);
+        });
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const numeroSeleccionado = parseInt(result.value);
 
-    if (isNaN(numeroSeleccionado) || numeroSeleccionado < 0 || numeroSeleccionado > 36) {
-      console.log('El número ingresado no es válido');
-      return;
-    }
+        Swal.fire({
+          title: 'Ingresa el color al que quieres apostar (rojo/negro):',
+          input: 'text',
+          showCancelButton: true,
+          confirmButtonText: 'Apostar',
+          cancelButtonText: 'Cancelar',
+          showLoaderOnConfirm: true,
+          preConfirm: (colorSeleccionado) => {
+            return new Promise((resolve) => {
+              setTimeout(() => {
+                if (colorSeleccionado !== 'rojo' && colorSeleccionado !== 'negro') {
+                  Swal.showValidationMessage('El color ingresado no es válido');
+                  resolve();
+                } else {
+                  resolve(colorSeleccionado);
+                }
+              }, 100);
+            });
+          },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const colorSeleccionado = result.value;
+            var numeroGanador = generarNumeroAleatorio();
+            const ganador = numeros.find((el) => el.numero === numeroGanador);
 
-    if (colorSeleccionado !== 'rojo' && colorSeleccionado !== 'negro') {
-      console.log('El color ingresado no es válido');
-      return;
-    }
+            Swal.fire('Resultado', 'Número: ' + ganador.numero + ' - Color: ' + ganador.color, 'info');
 
-    if (numeroSeleccionado === parseInt(numeros[numeroGanador]) && colorSeleccionado === colorGanador) {
-      jugador.fichas += jugador.apuesta * 5;
-    } else {
-      jugador.fichas -= jugador.apuesta;
-    }
+            if (numeroSeleccionado === ganador.numero && colorSeleccionado === ganador.color) {
+              jugador.fichas += jugador.apuesta * 5;
+            } else {
+              jugador.fichas -= jugador.apuesta;
+            }
 
-    console.log('Número seleccionado: ' + numeroSeleccionado + ' - Color seleccionado: ' + colorSeleccionado);
-    console.log('Fichas restantes: ' + jugador.fichas);
+            document.getElementById('fichas').textContent = jugador.fichas;
+            localStorage.setItem('fichas', jugador.fichas.toString());
+
+            console.log('Número seleccionado: ' + numeroSeleccionado + ' - Color seleccionado: ' + colorSeleccionado);
+            console.log('Fichas restantes: ' + jugador.fichas);
+            document.getElementById('fichas').textContent = jugador.fichas;
+          }
+        });
+      }
+    });
   } else {
-    console.log('No tienes suficientes fichas para apostar');
+    Swal.fire('No tienes suficientes fichas para apostar', '', 'warning');
   }
-  document.getElementById('fichas').textContent = jugador.fichas;
 }
-
 
 btnGirar.addEventListener('click', girarRuleta);
